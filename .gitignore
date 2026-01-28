@@ -1,0 +1,19 @@
+# --- Secrets / config (NO subir tokens) ---
+src/config/settings.yaml
+src/config/settings.yml
+
+# Opcional: cualquier archivo de credenciales
+.env
+.env.*
+*.key
+*.pem
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- SQLite / data local ---
+data/
+*.sqlite
+*.db
