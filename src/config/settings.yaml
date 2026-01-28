@@ -1,0 +1,4 @@
+symbol: "EURUSD"
+timeframe: "M5"
+history_days: 90
+db_path : "UTC"

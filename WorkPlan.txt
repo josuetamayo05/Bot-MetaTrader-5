@@ -1,0 +1,205 @@
+Plan de trabajo — EURUSD Analytics & Alerts (MT5)
+Versión: 0.1 (MVP)
+Mercado: EURUSD
+Fuente de datos: MetaTrader 5 (MetaQuotes-Demo)
+Objetivo inicial: Analizar sesiones + generar alertas y un reporte diario (sin auto-trading)
+
+1) Visión del producto
+Crear un sistema que:
+
+Recolecte datos de EURUSD desde MT5 (candles, y opcionalmente tick/bid-ask).
+Divida el día por sesiones (Asia / Londres / Nueva York).
+Calcule métricas estadísticas útiles (rango, volatilidad, comportamiento por hora, etc.).
+Genere:
+Alertas intradía (Telegram/Discord/email) basadas en reglas objetivas.
+Reporte diario en PDF (resumen de sesiones, gráficos, condiciones del día).
+Evolucione a un “Strategy Lab” (evaluación de estrategias) sin sobreajuste.
+2) Alcance (MVP) vs No-alcance
+MVP (lo que sí se hará primero)
+Ingesta de datos MT5 (M5 + opcional M1).
+Segmentación por sesiones.
+Métricas: rango por sesión, volatilidad (ATR), “volatility regime”, retornos, distribución por hora.
+Alertas por reglas (sin “compra/venta” directa).
+Reporte PDF diario.
+No-alcance (por ahora)
+Auto-trading con dinero real.
+Promesas de rentabilidad o señales “garantizadas”.
+Modelos complejos tipo ML sin una base estadística sólida.
+3) Definición de sesiones (por UTC) + nota importante
+Para empezar, define sesiones en UTC (configurable):
+
+Asia: 00:00–06:59 UTC
+Londres: 07:00–12:59 UTC
+Nueva York: 13:00–21:59 UTC
+Cierre / transición: 22:00–23:59 UTC (opcional como “late session”)
+Nota: Londres/NY cambian con DST (horario de verano). En el MVP puedes usar UTC fijo (más simple) y luego en v0.2 agregar ajuste automático por timezone.
+
+4) Stack recomendado (simple y profesional)
+Lenguaje / análisis
+Python 3.11+
+MetaTrader5, pandas, numpy
+Indicadores: pandas-ta o ta
+Almacenamiento
+MVP rápido: SQLite (archivo local)
+Escalable: PostgreSQL + TimescaleDB (ideal para series temporales)
+Alertas
+Telegram Bot API (muy fácil) o Discord Webhooks
+Reporte PDF
+Gráficos: matplotlib o plotly
+PDF: reportlab o weasyprint (HTML→PDF)
+Scheduling (tareas automáticas)
+APScheduler o cron (si luego lo pones en servidor)
+5) Arquitectura (módulos)
+Ingesta (ingestion)
+
+Conecta MT5
+Descarga candles (M5 y/o M1)
+Normaliza UTC
+Guarda en DB
+Análisis (analysis)
+
+Sesiones (corte por horarios)
+Features: rangos, retornos, ATR, volatilidad, percentiles, etc.
+Resúmenes diarios
+Alertas (alerts)
+
+Motor de reglas
+Envío Telegram
+Registro de alertas disparadas (para auditoría)
+Reportes (reports)
+
+Genera PDF diario (resumen + gráficos)
+Guarda PDF por fecha
+API/Panel (opcional v0.2+)
+
+FastAPI para dashboard web y endpoints
+6) Modelo de datos mínimo (MVP)
+Tabla candles
+symbol (EURUSD)
+timeframe (M5/M1)
+time_utc (datetime, index)
+open, high, low, close
+tick_volume (si MT5 lo da)
+(Opcional) spread si lo puedes obtener consistentemente
+Tabla daily_summary
+date_utc
+asia_range, london_range, ny_range
+day_atr, volatility_regime
+trend_bias (simple)
+notes (texto)
+Tabla alerts_log
+ts_utc
+alert_type
+payload_json
+sent_to / status
+7) Alertas recomendadas (sin señales “compra/venta”)
+Estas alertas son vendibles y objetivas:
+
+Ruptura de rango de sesión
+“Rompió el high/low de Asia”
+“Rompió el rango de Londres”
+Régimen de volatilidad
+“Volatilidad alta vs percentil histórico”
+“Cambio de régimen: de bajo → alto”
+Rango de sesión extremo
+“Rango de Londres hoy está en top 10% histórico”
+Spread anormal (si tienes bid/ask/spread confiable)
+“Spread fuera de lo normal (evitar entradas)”
+Proximidad a noticias (v0.2)
+“Evento macro en 30 min (cuidado con spikes)”
+8) Reporte diario PDF (contenido mínimo)
+Portada / Resumen
+
+Fecha, símbolo, timeframe usado
+“Estado del día”: volatilidad (baja/media/alta)
+Sesiones
+
+Rango de Asia/Londres/NY (pips y % vs promedio)
+Gráfico de velas con marcas de sesiones
+Tabla “mejores horas” (movimiento promedio por hora)
+Señales/Alertas del día (log)
+
+Lista de alertas disparadas con hora y condición
+Conclusión
+
+2–3 bullet points de “condiciones del día” (informativo, no recomendación)
+9) Plan por etapas (4 semanas recomendado)
+Semana 1 — Base técnica + datos
+Objetivo: tener datos guardados y sesiones separadas correctamente.
+
+ Crear repo y estructura de carpetas
+ Conectar Python↔MT5 (MetaQuotes-Demo)
+ Descargar histórico de M5 (ej. últimos 90 días)
+ Guardar en SQLite (MVP)
+ Normalizar a UTC y validar huecos
+ Implementar segmentación por sesiones
+Entregable: DB poblada + script que imprime rangos por sesión.
+Semana 2 — Motor de análisis + primeras alertas
+Objetivo: métricas + alertas básicas funcionando.
+
+ Cálculo ATR/volatilidad + percentiles
+ Rango por sesión y comparación histórica
+ Alertas por “breakout de rango” y “volatilidad alta”
+ Integración Telegram (bot) + logs
+Entregable: alertas enviándose + registro de alertas.
+Semana 3 — Reporte PDF diario
+Objetivo: reporte profesional listo para enviar/vender.
+
+ Plantilla PDF (estilo limpio, oscuro/cian si quieres)
+ Gráficos (candles + separadores de sesión)
+ Resumen + tabla de métricas
+ Generación automática diaria
+Entregable: PDF diario generado automáticamente.
+Semana 4 — Calidad, backtests simples y preparación de producto
+Objetivo: estabilidad + base para monetizar.
+
+ Logging, manejo de errores, reconexión MT5
+ Validación de datos faltantes
+ Backtest simple de “reglas de alertas” (solo para estadística)
+ Documentación + configuración por archivo (config.yaml)
+Entregable: MVP estable + docs + checklist de despliegue.
+10) Estructura sugerida del proyecto (carpetas)
+text
+
+eurusd-bot/
+  src/
+    config/
+      settings.yaml
+    ingestion/
+      mt5_client.py
+      fetch_candles.py
+    storage/
+      db.py
+      models.py
+    analysis/
+      sessions.py
+      indicators.py
+      daily_summary.py
+    alerts/
+      rules.py
+      telegram.py
+      runner.py
+    reports/
+      charts.py
+      daily_pdf.py
+  scripts/
+    run_ingestion.py
+    run_daily_report.py
+    run_alerts_loop.py
+  requirements.txt
+  README.md
+11) Riesgos y cómo mitigarlos (importante)
+Calidad de datos MetaQuotes-Demo: bueno para prototipo, pero para producción puede variar.
+Mitigación: diseño para cambiar de broker/fuente luego.
+Sobreajuste (estrategias “inventadas” por el bot):
+Mitigación: limitar familias de estrategias + out-of-sample + costos/spread.
+Legal/comercial:
+Mitigación: vender como analytics/alerts, no “señales garantizadas”.
+12) Próximos pasos (hoy)
+Confirmar timeframe inicial: recomiendo M5 (M1 opcional luego).
+Elegir DB: empieza con SQLite para avanzar rápido.
+Elegir canal de alertas: recomiendo Telegram.
+Preparar el repo y el primer script:
+conexión MT5
+descarga M5 (últimos 90 días)
+guardado + cálculo de rangos por sesión
