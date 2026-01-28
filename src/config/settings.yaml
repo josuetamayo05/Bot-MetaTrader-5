@@ -1,8 +1,0 @@
-symbol: "EURUSD"
-timeframe: "M5"
-history_days: 90
-db_path : "UTC"
-
-telegram:
-  token: "8445654684:AAEihWURWTTg4ml6FZFN_tfZ0vfW5KkTKbw"
-  chat_id: 6396842295
