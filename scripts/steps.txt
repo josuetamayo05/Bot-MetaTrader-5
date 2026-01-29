@@ -1,6 +1,24 @@
 & ".\.venv\Scripts\python.exe" scripts/breakout_alerts_telegram.py --date 2026-01-27
 
 
-4) Ejecutar en vivo
+Ejecutar en vivo
 
 & ".\.venv\Scripts\python.exe" scripts/live_session_alerts.py
+
+
+Paso A: guarda session_summary automáticamente (una vez al día)
+Lo más fácil: al final del día (después de 22:00 UTC), ejecutas:
+
+PowerShell
+
+& ".\.venv\Scripts\python.exe" scripts/session_summary.py --date 2026-01-27 --save
+
+
+Ejecutar
+PowerShell
+
+& ".\.venv\Scripts\python.exe" scripts/live_session_alerts_v2.py
+Qué debes esperar ahora
+En cuanto arranque (o cuando cambie el día UTC) te llega: 📍Bot activo.
+Las alertas salen solo si rompe rangos (con buffer 1 pip).
+Ahora puede alertar “más rápido” porque usa tick (precio actual), no espera cierre M5.

@@ -21,6 +21,42 @@ def send_telegram(token: str, chat_id: int, text: str):
     r=requests.post(url, json={"chat_id": chat_id, "text": text})
     r.raise_for_status()
 
+def ensure_candles_table():
+    sql = """
+    CREATE TABLE IF NOT EXISTS candles (
+      symbol TEXT NOT NULL,
+      timeframe TEXT NOT NULL,
+      time_utc TEXT NOT NULL,
+      open REAL NOT NULL,
+      high REAL NOT NULL,
+      low REAL NOT NULL,
+      close REAL NOT NULL,
+      tick_volume INTEGER,
+      spread INTEGER,
+      real_volume INTEGER,
+      PRIMARY KEY (symbol, timeframe, time_utc)
+    );
+    """
+    with sqlite3.connect(DB_PATH) as con:
+        con.execute(sql)
+        con.commit()
+
+def save_bar_to_sqlite(symbol: str, tf_name: str, bar: pd.Series) -> bool:
+    # True si insertó (era nueva)
+    sql = """
+    INSERT OR IGNORE INTO candles
+    (symbol, timeframe, time_utc, open, high, low, close, tick_volume, spread, real_volume)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    """
+    with sqlite3.connect(DB_PATH) as con:
+        cur = con.execute(sql, (
+            symbol, tf_name, bar["time_utc"].isoformat(),
+            float(bar["open"]), float(bar["high"]), float(bar["low"]), float(bar["close"]),
+            None, None, None
+        ))
+        con.commit()
+        return cur.rowcount == 1
+
 def ensure_alerts_table():
     sql="""
     CREATE TABLE IF NOT EXISTS alerts_log (
@@ -90,6 +126,7 @@ def main():
     timeframe = tf_map[tf_name]
 
     ensure_alerts_table()
+    ensure_candles_table()
 
     if not mt5.initialize():
         raise RuntimeError(f"MT5 init failed: {mt5.last_error()}")
@@ -113,6 +150,9 @@ def main():
                 print(f"\n--- New UTC day: {date_utc} ---")
 
             bar = get_last_closed_bar(symbol, timeframe)
+
+            inserted=save_bar_to_sqlite(symbol,tf_name,bar)
+            
             if bar is None:
                 time.sleep(poll_seconds)
                 continue
