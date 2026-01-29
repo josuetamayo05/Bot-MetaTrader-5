@@ -1,0 +1,6 @@
+& ".\.venv\Scripts\python.exe" scripts/breakout_alerts_telegram.py --date 2026-01-27
+
+
+4) Ejecutar en vivo
+
+& ".\.venv\Scripts\python.exe" scripts/live_session_alerts.py
