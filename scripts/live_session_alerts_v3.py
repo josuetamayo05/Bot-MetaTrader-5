@@ -228,6 +228,47 @@ def main():
             london_start, london_end = get_session_bounds(date_utc, *SESSIONS["LONDON"])
             ny_start, ny_end = get_session_bounds(date_utc, *SESSIONS["NY"])
 
+            # --- Mensajes informativos: rango final de sesiones ---
+            # 07:00 UTC: Asia final
+            if ts_tick >= asia_end and not exists_once(f"{date_utc}_ASIA_FINAL_SENT"):
+                asia_df_final = load_rates_utc(symbol, timeframe, asia_start, asia_end)
+                if not asia_df_final.empty:
+                    asia_hi = float(asia_df_final["high"].max())
+                    asia_lo = float(asia_df_final["low"].min())
+                    asia_range = (asia_hi - asia_lo) / PIP_SIZE
+                    local_h, utc_h = fmt_h(ts_tick, local_tz)
+
+                    msg = (
+                        f"✅ EURUSD {tf_name}\n"
+                        f"Rango ASIA finalizado\n"
+                        f"🕒 Cuba {local_h} | UTC {utc_h}\n"
+                        f"📏 Rango: {asia_range:.1f} pips\n"
+                        f"📈 {asia_lo:.5f} — {asia_hi:.5f}\n"
+                        f"🔎 Desde ahora se monitorean rupturas del rango de ASIA."
+                    )
+                    if insert_once(f"{date_utc}_ASIA_FINAL_SENT", ts_tick.isoformat(), msg):
+                        send_telegram(token, chat_id, msg)
+
+            # 13:00 UTC: Londres final
+            if ts_tick >= london_end and not exists_once(f"{date_utc}_LONDON_FINAL_SENT"):
+                london_df_final = load_rates_utc(symbol, timeframe, london_start, london_end)
+                if not london_df_final.empty:
+                    london_hi = float(london_df_final["high"].max())
+                    london_lo = float(london_df_final["low"].min())
+                    london_range = (london_hi - london_lo) / PIP_SIZE
+                    local_h, utc_h = fmt_h(ts_tick, local_tz)
+
+                    msg = (
+                        f"✅ EURUSD {tf_name}\n"
+                        f"Rango LONDRES finalizado\n"
+                        f"🕒 Cuba {local_h} | UTC {utc_h}\n"
+                        f"📏 Rango: {london_range:.1f} pips\n"
+                        f"📈 {london_lo:.5f} — {london_hi:.5f}\n"
+                        f"🔎 Desde ahora se monitorean rupturas del rango de LONDRES (NY)."
+                    )
+                    if insert_once(f"{date_utc}_LONDON_FINAL_SENT", ts_tick.isoformat(), msg):
+                        send_telegram(token, chat_id, msg)
+
             # --- 1) Alertas de ruptura (ASIA) + reversión ---
             asia_df = load_rates_utc(symbol, timeframe, asia_start, asia_end)
             if not asia_df.empty and ts_tick >= asia_end and ts_tick < ny_end:
