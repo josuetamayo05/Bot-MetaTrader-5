@@ -6,6 +6,12 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
+from pathlib import Path
+import sys
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+from src.reports.pdf_pro import build_pro_pdf
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
@@ -268,7 +274,15 @@ def main():
     # PDF
     Path("reports").mkdir(exist_ok=True)
     pdf_path = f"reports/eurusd_report_{date_utc}.pdf"
-    make_pdf(date_utc, rows, alerts, pdf_path)
+    pdf_path = f"reports/eurusd_report_{date_utc}.pdf"
+    build_pro_pdf(
+        date_utc=date_utc,
+        session_rows=rows,     
+        alerts_rows=alerts,   
+        out_path=pdf_path,
+        ny_p90_val=ny_p90_val, 
+        brand="JA CubanCode"
+    )
 
     send_telegram_document(token, chat_id, pdf_path, caption=f"Reporte EURUSD {date_utc} (UTC)")
     print("Reporte enviado:", pdf_path)
